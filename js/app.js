@@ -233,20 +233,6 @@
     }
 
     UI.renderArticlePreview(article, container);
-
-    // Bind preview publish toggle button
-    const toggleBtn = document.getElementById('preview-toggle-publish-btn');
-    if (toggleBtn && article) {
-      toggleBtn.onclick = () => {
-        const updated = StorageService.togglePublish(article.id);
-        if (updated) {
-          const actionWord = updated.status === 'published' ? 'published' : 'reverted to draft';
-          UI.showToast(`Article "${updated.title}" ${actionWord}!`);
-          loadPreviewView(updated.id);
-          UI.updateSidebarBadges(StorageService.getStatistics());
-        }
-      };
-    }
   }
 
   /* =========================================================================
@@ -411,12 +397,6 @@
       return;
     }
 
-    if (statusToSet === 'published' && !content.trim()) {
-      UI.showToast('Please enter article content before publishing.', 'warning');
-      document.getElementById('input-article-content')?.focus();
-      return;
-    }
-
     const payload = {
       title,
       slug: slug || MarkdownParser.generateSlug(title),
@@ -432,14 +412,24 @@
       const updated = StorageService.update(state.editingArticleId, payload);
       if (updated) {
         UI.showToast(`Article "${updated.title}" successfully updated!`, 'success');
-        window.location.hash = `#/preview?id=${updated.id}`;
+        const targetHash = `#/preview?id=${updated.id}`;
+        if (window.location.hash === targetHash) {
+          handleRoute();
+        } else {
+          window.location.hash = targetHash;
+        }
       } else {
         UI.showToast('Failed to update article', 'error');
       }
     } else {
       const created = StorageService.create(payload);
       UI.showToast(`Article "${created.title}" successfully ${statusToSet === 'published' ? 'published' : 'saved as draft'}!`, 'success');
-      window.location.hash = `#/preview?id=${created.id}`;
+      const targetHash = `#/preview?id=${created.id}`;
+      if (window.location.hash === targetHash) {
+        handleRoute();
+      } else {
+        window.location.hash = targetHash;
+      }
     }
   }
 
@@ -582,10 +572,10 @@
       });
     }
 
-    // 3. Global Delegated Clicks for Table Actions (Publish/Unpublish, Delete)
+    // 3. Global Delegated Clicks for Table & Preview Actions (Publish/Unpublish, Delete)
     document.addEventListener('click', function (e) {
-      // Toggle publish button
-      const publishBtn = e.target.closest('[data-action="toggle-publish"]');
+      // Toggle publish button in tables or preview view
+      const publishBtn = e.target.closest('[data-action="toggle-publish"], #preview-toggle-publish-btn');
       if (publishBtn) {
         e.preventDefault();
         const articleId = publishBtn.getAttribute('data-id');
@@ -593,7 +583,12 @@
         if (updated) {
           const statusText = updated.status === 'published' ? 'published' : 'reverted to draft';
           UI.showToast(`Article "${updated.title}" ${statusText}!`);
-          handleRoute(); // re-render current view
+          if (state.currentRoute === 'preview') {
+            loadPreviewView(updated.id);
+            UI.updateSidebarBadges(StorageService.getStatistics());
+          } else {
+            handleRoute(); // re-render current view
+          }
         }
         return;
       }
@@ -850,7 +845,12 @@
         const created = StorageService.create(state.uploadedArticleData);
         closeUploadModal();
         UI.showToast(`Imported "${created.title}" as Draft!`, 'success');
-        window.location.hash = `#/preview?id=${created.id}`;
+        const targetHash = `#/preview?id=${created.id}`;
+        if (window.location.hash === targetHash) {
+          handleRoute();
+        } else {
+          window.location.hash = targetHash;
+        }
       });
     }
 
@@ -864,7 +864,12 @@
         const created = StorageService.create(state.uploadedArticleData);
         closeUploadModal();
         UI.showToast(`Imported and published "${created.title}"!`, 'success');
-        window.location.hash = `#/preview?id=${created.id}`;
+        const targetHash = `#/preview?id=${created.id}`;
+        if (window.location.hash === targetHash) {
+          handleRoute();
+        } else {
+          window.location.hash = targetHash;
+        }
       });
     }
 

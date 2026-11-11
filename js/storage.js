@@ -110,6 +110,9 @@ const StorageService = (function () {
     }
   ];
 
+  /**
+   * Initialize storage with sample data if empty
+   */
   function init() {
     try {
       const existing = localStorage.getItem(STORAGE_KEY);
@@ -121,6 +124,10 @@ const StorageService = (function () {
     }
   }
 
+  /**
+   * Get all articles from localStorage
+   * @returns {Array} articles
+   */
   function getAll() {
     try {
       const data = localStorage.getItem(STORAGE_KEY);
@@ -133,12 +140,22 @@ const StorageService = (function () {
     }
   }
 
+  /**
+   * Get article by ID
+   * @param {string} id 
+   * @returns {Object|null}
+   */
   function getById(id) {
     if (!id) return null;
     const articles = getAll();
     return articles.find(a => a.id === id) || null;
   }
 
+  /**
+   * Create a new article
+   * @param {Object} data 
+   * @returns {Object} created article
+   */
   function create(data) {
     const articles = getAll();
     const now = new Date().toISOString();
@@ -171,6 +188,12 @@ const StorageService = (function () {
     return newArticle;
   }
 
+  /**
+   * Update an existing article
+   * @param {string} id 
+   * @param {Object} fields 
+   * @returns {Object|null} updated article
+   */
   function update(id, fields) {
     const articles = getAll();
     const index = articles.findIndex(a => a.id === id);
@@ -213,6 +236,11 @@ const StorageService = (function () {
     return updated;
   }
 
+  /**
+   * Remove an article by ID
+   * @param {string} id 
+   * @returns {boolean}
+   */
   function remove(id) {
     const articles = getAll();
     const filtered = articles.filter(a => a.id !== id);
@@ -223,12 +251,28 @@ const StorageService = (function () {
     return false;
   }
 
+  /**
+   * Toggle published/draft status of an article
+   * Synchronously updates status in localStorage so UI responds instantly,
+   * and optionally triggers AWS API Gateway publishing in background if configured.
+   * @param {string} id 
+   * @returns {Object|null} updated article
+   */
   function togglePublish(id) {
     const article = getById(id);
     if (!article) return null;
 
     const newStatus = article.status === 'published' ? 'draft' : 'published';
-    return update(id, { status: newStatus });
+    const updated = update(id, { status: newStatus });
+
+    // If publishing and AWS endpoint configured, trigger cloud publish in background
+    if (newStatus === 'published' && AWS_CONFIG.API_URL && !AWS_CONFIG.USE_MOCK) {
+      publishDraftToAWS(id).catch(err => {
+        console.warn('AWS API Gateway publish warning:', err);
+      });
+    }
+
+    return updated;
   }
 
   /**
@@ -239,3 +283,322 @@ const StorageService = (function () {
    */
   async function publishDraftToAWS(id) {
     const article = getById(id);
+    if (!article) {
+      throw new Error('Article not found with id: ' + id);
+    }
+
+    const payload = {
+      id: article.id,
+      title: article.title,
+      slug: article.slug,
+      category: article.category,
+      author: article.author,
+      tags: article.tags,
+      excerpt: article.excerpt,
+      content: article.content,
+      readTime: article.readTime,
+      publishedAt: new Date().toISOString()
+    };
+
+    if (AWS_CONFIG.USE_MOCK || !AWS_CONFIG.API_URL) {
+      await new Promise(resolve => setTimeout(resolve, 200));
+      const updated = update(id, { status: 'published', publishedAt: payload.publishedAt });
+      return { success: true, mode: 'mock', article: updated };
+    }
+
+    try {
+      const endpoint = AWS_CONFIG.API_URL.endsWith('/')
+        ? AWS_CONFIG.API_URL + 'publish'
+        : AWS_CONFIG.API_URL + '/publish';
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`AWS API Gateway returned HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json().catch(() => ({ success: true }));
+      const updated = update(id, { status: 'published', publishedAt: payload.publishedAt });
+      return { success: true, data: result, article: updated };
+    } catch (err) {
+      console.warn('AWS API Gateway publish encountered network/CORS limitation, article remains published in local storage:', err);
+      const updated = update(id, { status: 'published', publishedAt: payload.publishedAt });
+      return { success: false, error: err.message, article: updated, fallback: true };
+    }
+  }
+
+  /**
+   * Save array of articles to localStorage
+   */
+  function saveAll(articles) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(articles));
+      return true;
+    } catch (e) {
+      console.error('Failed to save to localStorage', e);
+      if (typeof UI !== 'undefined' && UI.showToast) {
+        UI.showToast('Storage quota exceeded or browser storage is disabled.', 'error');
+      }
+      return false;
+    }
+  }
+
+  /**
+   * Calculate aggregated CMS statistics
+   */
+  function getStatistics() {
+    const articles = getAll();
+    const total = articles.length;
+    const published = articles.filter(a => a.status === 'published').length;
+    const drafts = articles.filter(a => a.status === 'draft').length;
+
+    // Categories breakdown
+    const categoryCount = {};
+    let totalWords = 0;
+
+    articles.forEach(a => {
+      const cat = a.category || 'Uncategorized';
+      categoryCount[cat] = (categoryCount[cat] || 0) + 1;
+      totalWords += (typeof MarkdownParser !== 'undefined' && MarkdownParser.countWords)
+        ? MarkdownParser.countWords(a.content || '')
+        : (a.content ? a.content.split(/\s+/).length : 0);
+    });
+
+    const categoriesList = Object.keys(categoryCount).map(name => ({
+      name,
+      count: categoryCount[name]
+    })).sort((a, b) => b.count - a.count);
+
+    return {
+      total,
+      published,
+      drafts,
+      publishRate: total > 0 ? Math.round((published / total) * 100) : 0,
+      totalWords,
+      categories: categoriesList,
+      recent: articles.slice(0, 5)
+    };
+  }
+
+  /**
+   * Reset data to realistic sample articles
+   */
+  function resetToDefaults() {
+    saveAll(SAMPLE_ARTICLES);
+    return getAll();
+  }
+
+  /**
+   * Export database as JSON string
+   */
+  function exportData() {
+    return JSON.stringify(getAll(), null, 2);
+  }
+
+  /**
+   * Import data from JSON
+   */
+  function importData(jsonString) {
+    try {
+      const parsed = JSON.parse(jsonString);
+      if (Array.isArray(parsed)) {
+        saveAll(parsed);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error('Failed to import JSON data', e);
+      return false;
+    }
+  }
+
+  // Self initialize on load
+  init();
+
+  return {
+    init,
+    getAll,
+    getById,
+    create,
+    update,
+    remove,
+    togglePublish,
+    publishDraftToAWS,
+    getStatistics,
+    resetToDefaults,
+    exportData,
+    importData,
+    AWS_CONFIG
+  };
+})();
+
+// Export for Node testing or browser window
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = StorageService;
+}
+
+    if (!article) {
+      throw new Error('Article not found with id: ' + id);
+    }
+
+    const payload = {
+      id: article.id,
+      title: article.title,
+      slug: article.slug,
+      category: article.category,
+      author: article.author,
+      tags: article.tags,
+      excerpt: article.excerpt,
+      content: article.content,
+      readTime: article.readTime,
+      publishedAt: new Date().toISOString()
+    };
+
+    if (AWS_CONFIG.USE_MOCK || !AWS_CONFIG.API_URL) {
+      await new Promise(resolve => setTimeout(resolve, 200));
+      const updated = update(id, { status: 'published', publishedAt: payload.publishedAt });
+      return { success: true, mode: 'mock', article: updated };
+    }
+
+    try {
+      const endpoint = AWS_CONFIG.API_URL.endsWith('/')
+        ? AWS_CONFIG.API_URL + 'publish'
+        : AWS_CONFIG.API_URL + '/publish';
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`AWS API Gateway returned HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json().catch(() => ({ success: true }));
+      const updated = update(id, { status: 'published', publishedAt: payload.publishedAt });
+      return { success: true, data: result, article: updated };
+    } catch (err) {
+      console.warn('AWS API Gateway publish encountered network/CORS limitation, article remains published in local storage:', err);
+      const updated = update(id, { status: 'published', publishedAt: payload.publishedAt });
+      return { success: false, error: err.message, article: updated, fallback: true };
+    }
+  }
+
+  /**
+   * Save array of articles to localStorage
+   */
+  function saveAll(articles) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(articles));
+      return true;
+    } catch (e) {
+      console.error('Failed to save to localStorage', e);
+      if (typeof UI !== 'undefined' && UI.showToast) {
+        UI.showToast('Storage quota exceeded or browser storage is disabled.', 'error');
+      }
+      return false;
+    }
+  }
+
+  /**
+   * Calculate aggregated CMS statistics
+   */
+  function getStatistics() {
+    const articles = getAll();
+    const total = articles.length;
+    const published = articles.filter(a => a.status === 'published').length;
+    const drafts = articles.filter(a => a.status === 'draft').length;
+
+    // Categories breakdown
+    const categoryCount = {};
+    let totalWords = 0;
+
+    articles.forEach(a => {
+      const cat = a.category || 'Uncategorized';
+      categoryCount[cat] = (categoryCount[cat] || 0) + 1;
+      totalWords += (typeof MarkdownParser !== 'undefined' && MarkdownParser.countWords)
+        ? MarkdownParser.countWords(a.content || '')
+        : (a.content ? a.content.split(/\s+/).length : 0);
+    });
+
+    const categoriesList = Object.keys(categoryCount).map(name => ({
+      name,
+      count: categoryCount[name]
+    })).sort((a, b) => b.count - a.count);
+
+    return {
+      total,
+      published,
+      drafts,
+      publishRate: total > 0 ? Math.round((published / total) * 100) : 0,
+      totalWords,
+      categories: categoriesList,
+      recent: articles.slice(0, 5)
+    };
+  }
+
+  /**
+   * Reset data to realistic sample articles
+   */
+  function resetToDefaults() {
+    saveAll(SAMPLE_ARTICLES);
+    return getAll();
+  }
+
+  /**
+   * Export database as JSON string
+   */
+  function exportData() {
+    return JSON.stringify(getAll(), null, 2);
+  }
+
+  /**
+   * Import data from JSON
+   */
+  function importData(jsonString) {
+    try {
+      const parsed = JSON.parse(jsonString);
+      if (Array.isArray(parsed)) {
+        saveAll(parsed);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error('Failed to import JSON data', e);
+      return false;
+    }
+  }
+
+  // Self initialize on load
+  init();
+
+  return {
+    init,
+    getAll,
+    getById,
+    create,
+    update,
+    remove,
+    togglePublish,
+    publishDraftToAWS,
+    getStatistics,
+    resetToDefaults,
+    exportData,
+    importData,
+    AWS_CONFIG
+  };
+})();
+
+// Export for Node testing or browser window
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = StorageService;
+}
