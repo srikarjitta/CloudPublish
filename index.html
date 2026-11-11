@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CloudPublish – Cloud Content Management System</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Mobile Sidebar Backdrop Overlay -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- Left Sidebar (Dark Navy Blue) -->
+    <aside class="app-sidebar" id="app-sidebar">
+      <div class="sidebar-header">
+        <a href="#/dashboard" class="brand-logo">
+          <div class="brand-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <span class="brand-name">CloudPublish</span>
+            <span class="brand-tagline">Headless CMS</span>
+          </div>
+        </a>
+      </div>
+
+      <!-- Navigation -->
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Overview</div>
+        <a href="#/dashboard" class="nav-item" data-route="dashboard" id="nav-dashboard">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+          </span>
+          <span class="nav-title">Dashboard</span>
+        </a>
+
+        <div class="nav-section-title" style="margin-top: 0.75rem;">Content Hub</div>
+        <a href="#/all-content" class="nav-item" data-route="all-content" id="nav-all-content">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+          </span>
+          <span class="nav-title">All Content</span>
+        </a>
+
+        <a href="#/drafts" class="nav-item" data-route="drafts" id="nav-drafts">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+          </span>
+          <span class="nav-title">Drafts</span>
+          <span class="nav-badge nav-badge-drafts" id="sidebar-badge-drafts">0</span>
+        </a>
+
+        <a href="#/published" class="nav-item" data-route="published" id="nav-published">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+          </span>
+          <span class="nav-title">Published</span>
+          <span class="nav-badge nav-badge-published" id="sidebar-badge-published">0</span>
+        </a>
+
+        <div class="nav-section-title" style="margin-top: 0.75rem;">Authoring</div>
+        <a href="#/create" class="nav-item" data-route="create" id="nav-create">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="16"></line>
+              <line x1="8" y1="12" x2="16" y2="12"></line>
+            </svg>
+          </span>
+          <span class="nav-title">Create Content</span>
+        </a>
+
+        <a href="#/preview" class="nav-item" data-route="preview" id="nav-preview">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+          </span>
+          <span class="nav-title">Content Preview</span>
+        </a>
+      </nav>
+
+      <!-- Sidebar Footer -->
+      <div class="sidebar-footer">
+        <div class="storage-status-card">
+          <span class="storage-dot"></span>
+          <span class="storage-text">Local Storage Mode</span>
+        </div>
+        <div class="sidebar-actions-row">
+          <button type="button" class="btn-sidebar-tool" id="btn-reset-sample-data" title="Reload default demo articles">
+            Reset Demo Data
+          </button>
+          <button type="button" class="btn-sidebar-tool" id="btn-export-json" title="Download backup JSON">
+            Export JSON
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="app-main">
+      <!-- Topbar Header -->
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button type="button" class="btn-mobile-toggle" id="btn-mobile-menu" aria-label="Toggle navigation menu">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+          <h1 class="page-title" id="topbar-page-title">Dashboard Overview</h1>
+        </div>
+
+        <div class="topbar-right">
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-open-upload-modal">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            Upload .md
+          </button>
+
+          <a href="#/create" class="btn btn-primary btn-sm">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            New Article
+          </a>
+
+          <div class="admin-profile">
+            <div class="admin-avatar">CP</div>
+            <div class="admin-details">
+              <span class="admin-name">Admin User</span>
+              <span class="admin-role">System Administrator</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- View Containers -->
+      <div class="page-content-wrapper">
+
+        <!-- =================================================================
+             PAGE 1: DASHBOARD
+             ================================================================= -->
+        <section class="page-view" id="view-dashboard">
+          <!-- Hero Banner -->
+          <div class="dashboard-actions-banner">
+            <div class="banner-content">
+              <h2>CloudPublish Content Management</h2>
+              <p>Create, upload, preview, and publish Markdown articles with instant API delivery.</p>
+            </div>
+            <div class="banner-buttons">
+              <a href="#/create" class="btn btn-primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Create Article
+              </a>
+              <button type="button" class="btn btn-secondary" onclick="document.getElementById('btn-open-upload-modal').click()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                Upload Markdown (.md)
+              </button>
+            </div>
+          </div>
+
+          <!-- KPI Stats Grid -->
+          <div class="stats-grid">
+            <!-- Total Articles -->
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-label">Total Articles</span>
+                <div class="stat-icon-wrapper icon-blue">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                  </svg>
+                </div>
+              </div>
+              <div class="stat-value" id="stat-total-articles">0</div>
+              <div class="stat-footer">
+                <span>Managed across all categories</span>
+              </div>
+            </div>
+
+            <!-- Published Articles -->
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-label">Published Articles</span>
+                <div class="stat-icon-wrapper icon-green">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                  </svg>
+                </div>
+              </div>
+              <div class="stat-value" id="stat-published-articles">0</div>
+              <div class="stat-footer">
+                <span id="stat-publish-rate">0% Published</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-bar" id="stat-rate-bar" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <!-- Drafts -->
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-label">Draft Articles</span>
+                <div class="stat-icon-wrapper icon-amber">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                </div>
+              </div>
+              <div class="stat-value" id="stat-draft-articles">0</div>
+              <div class="stat-footer">
+                <span>In progress / awaiting review</span>
+              </div>
+            </div>
+
+            <!-- Total Words -->
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-label">Total Words</span>
+                <div class="stat-icon-wrapper icon-purple">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="4" y1="9" x2="20" y2="9"></line>
+                    <line x1="4" y1="15" x2="20" y2="15"></line>
+                    <line x1="10" y1="3" x2="8" y2="21"></line>
+                    <line x1="16" y1="3" x2="14" y2="21"></line>
+                  </svg>
+                </div>
+              </div>
+              <div class="stat-value" id="stat-total-words">0</div>
+              <div class="stat-footer">
+                <span>Total Markdown corpus</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Category Breakdown Card -->
+          <div class="card category-breakdown-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <h2 class="card-title">Category Distribution</h2>
+                <span class="card-subtitle">Active topic taxonomy in headless storage</span>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="category-chips-wrap" id="dashboard-categories-list">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Articles Table Card -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <h2 class="card-title">Recently Updated Content</h2>
+                <span class="card-subtitle">Latest changes made across drafts and publications</span>
+              </div>
+              <a href="#/all-content" class="btn btn-secondary btn-sm">View All Content</a>
+            </div>
+            <div id="dashboard-recent-articles">
+              <!-- Dynamically rendered -->
+            </div>
+          </div>
+        </section>
+
+        <!-- =================================================================
+             PAGE 2: ALL CONTENT
+             ================================================================= -->
+        <section class="page-view" id="view-all-content">
+          <div class="card">
+            <!-- Table Toolbar -->
+            <div class="table-toolbar">
+              <div class="toolbar-search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" class="cms-search-input" placeholder="Search by title, author, slug or tag..." />
+              </div>
+
+              <div class="toolbar-filters">
+                <select class="cms-select category-filter-select">
+                  <option value="all">All Categories</option>
+                </select>
+
+                <select class="cms-select sort-filter-select">
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                  <option value="title-asc">Title (A - Z)</option>
+                  <option value="read-time">Read Time</option>
+                </select>
+
+                <a href="#/create" class="btn btn-primary btn-sm">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  Create Article
+                </a>
+              </div>
+            </div>
+
+            <!-- Table Container -->
+            <div id="all-content-container">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </section>
+
+        <!-- =================================================================
+             PAGE 3: DRAFTS
+             ================================================================= -->
+        <section class="page-view" id="view-drafts">
+          <div class="card">
+            <div class="table-toolbar">
+              <div class="toolbar-search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" class="cms-search-input" placeholder="Search drafts..." />
+              </div>
+
+              <div class="toolbar-filters">
+                <select class="cms-select category-filter-select">
+                  <option value="all">All Categories</option>
+                </select>
+
+                <select class="cms-select sort-filter-select">
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                  <option value="title-asc">Title (A - Z)</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="drafts-content-container">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </section>
+
+        <!-- =================================================================
+             PAGE 4: PUBLISHED
+             ================================================================= -->
+        <section class="page-view" id="view-published">
+          <div class="card">
+            <div class="table-toolbar">
+              <div class="toolbar-search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" class="cms-search-input" placeholder="Search published articles..." />
+              </div>
+
+              <div class="toolbar-filters">
+                <select class="cms-select category-filter-select">
+                  <option value="all">All Categories</option>
+                </select>
+
+                <select class="cms-select sort-filter-select">
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                  <option value="title-asc">Title (A - Z)</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="published-content-container">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </section>
+
+        <!-- =================================================================
+             PAGE 5: CREATE / EDIT CONTENT
+             ================================================================= -->
+        <section class="page-view" id="view-create">
+          <div class="editor-container">
+            <form id="article-form" onsubmit="return false;">
+              <!-- Metadata Card -->
+              <div class="card editor-meta-card">
+                <div class="card-title-group" style="margin-bottom: 1.25rem;">
+                  <h2 class="card-title" id="editor-view-title">Create Markdown Article</h2>
+                  <span class="card-subtitle">Configure article metadata, taxonomy, and content body</span>
+                </div>
+
+                <!-- Quick File Upload Strip -->
+                <div class="editor-upload-strip" id="editor-dropzone">
+                  <div class="upload-strip-content">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="17 8 12 3 7 8"></polyline>
+                      <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <div>
+                      <strong>Import Existing Markdown File:</strong>
+                      <span>Drag & drop a <code>.md</code> file here, or click to browse</span>
+                    </div>
+                  </div>
+                  <input type="file" id="editor-file-input" accept=".md,.markdown,text/markdown" style="display: none;" />
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('editor-file-input').click()">
+                    Browse File
+                  </button>
+                </div>
+
+                <!-- Form Fields Grid -->
+                <div class="form-grid-row">
+                  <div class="form-group">
+                    <label class="form-label" for="input-article-title">Article Title *</label>
+                    <input type="text" id="input-article-title" class="form-input" placeholder="e.g. Modern Cloud Computing Architecture" required />
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="input-article-category">Category</label>
+                    <input type="text" id="input-article-category" class="form-input" placeholder="e.g. Cloud Architecture" list="category-datalist" value="Cloud Architecture" />
+                    <datalist id="category-datalist">
+                      <option value="Cloud Architecture"></option>
+                      <option value="Security"></option>
+                      <option value="DevOps"></option>
+                      <option value="Frontend"></option>
+                      <option value="Backend"></option>
+                      <option value="API Design"></option>
+                      <option value="Tutorials"></option>
+                    </datalist>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="input-article-author">Author</label>
+                    <input type="text" id="input-article-author" class="form-input" placeholder="e.g. Alexandra Chen" value="Admin" />
+                  </div>
+                </div>
+
+                <div class="form-grid-row">
+                  <div class="form-group">
+                    <label class="form-label" for="input-article-slug">URL Slug (Endpoint Path)</label>
+                    <input type="text" id="input-article-slug" class="form-input" placeholder="auto-generated-from-title" />
+                  </div>
+
+                  <div class="form-group" style="grid-column: span 2;">
+                    <label class="form-label" for="input-article-tags">Tags (Comma-separated)</label>
+                    <input type="text" id="input-article-tags" class="form-input" placeholder="aws, cloud, performance, architecture" />
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="input-article-excerpt">Article Summary / Excerpt</label>
+                  <textarea id="input-article-excerpt" class="form-textarea" rows="2" placeholder="Brief summary of this article for search indexes and API cards..."></textarea>
+                </div>
+              </div>
+
+              <!-- Markdown Editor & Live Preview Card -->
+              <div class="card" style="margin-top: 1.5rem;">
+                <!-- Toolbar -->
+                <div class="editor-toolbar" id="editor-toolbar">
+                  <button type="button" class="toolbar-btn" data-format="bold" title="Bold (**text**)"><strong>B</strong></button>
+                  <button type="button" class="toolbar-btn" data-format="italic" title="Italic (*text*)"><em>I</em></button>
+                  <button type="button" class="toolbar-btn" data-format="strike" title="Strikethrough (~~text~~)"><del>S</del></button>
+                  
+                  <span class="toolbar-divider"></span>
+
+                  <button type="button" class="toolbar-btn" data-format="h1" title="Heading 1 (# Heading)">H1</button>
+                  <button type="button" class="toolbar-btn" data-format="h2" title="Heading 2 (## Heading)">H2</button>
+                  <button type="button" class="toolbar-btn" data-format="h3" title="Heading 3 (### Heading)">H3</button>
+
+                  <span class="toolbar-divider"></span>
+
+                  <button type="button" class="toolbar-btn" data-format="quote" title="Blockquote (&gt; Quote)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"></path><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"></path></svg>
+                  </button>
+
+                  <button type="button" class="toolbar-btn" data-format="code" title="Inline Code (`code`)">&lt;/&gt;</button>
+                  <button type="button" class="toolbar-btn" data-format="codeblock" title="Code Block (```lang)">Codeblock</button>
+
+                  <span class="toolbar-divider"></span>
+
+                  <button type="button" class="toolbar-btn" data-format="ul" title="Unordered List (- item)">• List</button>
+                  <button type="button" class="toolbar-btn" data-format="ol" title="Ordered List (1. item)">1. List</button>
+                  <button type="button" class="toolbar-btn" data-format="table" title="Table">Table</button>
+                  <button type="button" class="toolbar-btn" data-format="hr" title="Divider (---)">Divider</button>
+
+                  <span class="toolbar-divider"></span>
+
+                  <button type="button" class="toolbar-btn" data-format="link" title="Link [text](url)">Link</button>
+                  <button type="button" class="toolbar-btn" data-format="image" title="Image ![alt](url)">Image</button>
+
+                  <div style="margin-left: auto; display: flex; align-items: center; gap: 0.5rem;">
+                    <button type="button" class="btn btn-secondary btn-sm active" id="btn-toggle-editor-split" title="Toggle Live Preview Split">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="12" y1="3" x2="12" y2="21"></line>
+                      </svg>
+                      Split View
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Editor Grid -->
+                <div class="editor-split-grid" id="editor-main-grid">
+                  <div class="editor-textarea-column">
+                    <textarea id="input-article-content" class="editor-textarea" placeholder="Write your Markdown content here... (supports headings, code blocks, lists, quotes, tables, and frontmatter)"></textarea>
+                  </div>
+
+                  <div class="editor-preview-column">
+                    <div class="markdown-rendered" id="editor-live-preview">
+                      <div class="preview-placeholder">
+                        <p class="text-muted">Live preview will appear here as you write...</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Status Bar -->
+                <div class="editor-status-bar">
+                  <div style="display: flex; gap: 1rem;">
+                    <span id="editor-word-count">0 words</span>
+                    <span>•</span>
+                    <span id="editor-read-time">1 min read</span>
+                  </div>
+                  <div>Markdown (CommonMark & GFM)</div>
+                </div>
+              </div>
+
+              <!-- Form Action Buttons -->
+              <div class="editor-actions-footer">
+                <a href="#/all-content" class="btn btn-secondary">
+                  Cancel
+                </a>
+
+                <div style="display: flex; gap: 0.75rem;">
+                  <button type="button" class="btn btn-secondary" id="btn-editor-draft">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                      <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                      <polyline points="7 3 7 8 15 8"></polyline>
+                    </svg>
+                    Save as Draft
+                  </button>
+
+                  <button type="button" class="btn btn-primary" id="btn-editor-publish">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                      <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                    Publish Article
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <!-- =================================================================
+             PAGE 6: CONTENT PREVIEW
+             ================================================================= -->
+        <section class="page-view" id="view-preview">
+          <div id="preview-view-container">
+            <!-- Dynamically populated by UI.renderArticlePreview -->
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- =========================================================================
+       MODALS
+       ========================================================================= -->
+
+  <!-- Modal: Upload Markdown File -->
+  <div class="modal-backdrop" id="upload-md-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Upload Markdown Article</h3>
+        <button type="button" class="modal-close" id="btn-close-upload-modal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <input type="file" id="modal-file-input" accept=".md,.markdown,text/markdown" style="display: none;" />
+
+        <div class="modal-dropzone" id="modal-upload-dropzone" onclick="document.getElementById('modal-file-input').click()">
+          <div class="dropzone-icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+          </div>
+          <div class="dropzone-prompt">Choose a Markdown (.md) file or drag it here</div>
+          <div class="dropzone-sub">Supports YAML frontmatter for title, slug, category, author & tags</div>
+        </div>
+
+        <div class="upload-parsed-card hidden" id="modal-upload-preview">
+          <div class="parsed-title" id="modal-parsed-title">Title</div>
+          <div class="parsed-meta" id="modal-parsed-meta">Category • Author</div>
+          <div class="parsed-excerpt" id="modal-parsed-excerpt">Excerpt...</div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('upload-md-modal').classList.remove('modal-open')">Cancel</button>
+        <button type="button" class="btn btn-outline-primary" id="btn-modal-open-editor">Open in Editor</button>
+        <button type="button" class="btn btn-secondary" id="btn-modal-save-draft">Save as Draft</button>
+        <button type="button" class="btn btn-primary" id="btn-modal-publish-now">Publish Now</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Confirmation Dialog -->
+  <div class="modal-backdrop" id="confirm-modal">
+    <div class="modal-card" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="confirm-modal-title">Confirm Action</h3>
+        <button type="button" class="modal-close" onclick="document.getElementById('confirm-modal').classList.remove('modal-open')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="confirm-modal-message" style="color: var(--text-muted); font-size: 0.92rem;">Are you sure you want to proceed?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="confirm-modal-cancel">Cancel</button>
+        <button type="button" class="btn btn-danger" id="confirm-modal-btn">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="js/markdown.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
+
