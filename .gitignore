@@ -1,8 +1,29 @@
+# Dependencies
 node_modules/
+package-lock.json
+
+# Environment variables
 .env
-.env.local
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Uploads & Media
+uploads/articles/*
+!uploads/articles/.gitkeep
+
+# System & Cache
+.DS_Store
+Thumbs.db
 __pycache__/
 *.pyc
 venv/
 .aws/
 credentials
+coverage/
+
+coverage/

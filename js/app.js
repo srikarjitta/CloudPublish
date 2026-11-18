@@ -194,6 +194,13 @@
         document.getElementById('input-article-tags').value = (article.tags || []).join(', ');
         document.getElementById('input-article-excerpt').value = article.excerpt || '';
         document.getElementById('input-article-content').value = article.content || '';
+
+        // Check for ephemeral offline draft buffer
+        const draftBuffer = StorageService.getDraftBuffer(state.editingArticleId);
+        if (draftBuffer && draftBuffer.content && draftBuffer.content !== article.content) {
+          document.getElementById('input-article-content').value = draftBuffer.content;
+          UI.showToast('Restored unsaved draft buffer from local storage', 'info');
+        }
         
         if (publishBtn) {
           publishBtn.innerHTML = article.status === 'published' 
@@ -382,7 +389,7 @@
   /**
    * Handle Editor Form Submission
    */
-  function handleArticleSubmit(statusToSet) {
+  async function handleArticleSubmit(statusToSet) {
     const title = document.getElementById('input-article-title')?.value.trim();
     const slug = document.getElementById('input-article-slug')?.value.trim();
     const category = document.getElementById('input-article-category')?.value.trim() || 'General';
@@ -408,28 +415,34 @@
       status: statusToSet
     };
 
-    if (state.editingArticleId) {
-      const updated = StorageService.update(state.editingArticleId, payload);
-      if (updated) {
-        UI.showToast(`Article "${updated.title}" successfully updated!`, 'success');
-        const targetHash = `#/preview?id=${updated.id}`;
+    try {
+      if (state.editingArticleId) {
+        const updated = await StorageService.update(state.editingArticleId, payload);
+        StorageService.clearDraftBuffer(state.editingArticleId);
+        if (updated) {
+          UI.showToast(`Article "${updated.title}" successfully updated!`, 'success');
+          const targetHash = `#/preview?id=${updated.id || updated._id}`;
+          if (window.location.hash === targetHash) {
+            handleRoute();
+          } else {
+            window.location.hash = targetHash;
+          }
+        } else {
+          UI.showToast('Failed to update article', 'error');
+        }
+      } else {
+        const created = await StorageService.create(payload);
+        StorageService.clearDraftBuffer('new');
+        UI.showToast(`Article "${created.title}" successfully ${statusToSet === 'published' ? 'published' : 'saved as draft'}!`, 'success');
+        const targetHash = `#/preview?id=${created.id || created._id}`;
         if (window.location.hash === targetHash) {
           handleRoute();
         } else {
           window.location.hash = targetHash;
         }
-      } else {
-        UI.showToast('Failed to update article', 'error');
       }
-    } else {
-      const created = StorageService.create(payload);
-      UI.showToast(`Article "${created.title}" successfully ${statusToSet === 'published' ? 'published' : 'saved as draft'}!`, 'success');
-      const targetHash = `#/preview?id=${created.id}`;
-      if (window.location.hash === targetHash) {
-        handleRoute();
-      } else {
-        window.location.hash = targetHash;
-      }
+    } catch (err) {
+      UI.showToast(err.message || 'Error saving article to MongoDB', 'error');
     }
   }
 
@@ -573,22 +586,26 @@
     }
 
     // 3. Global Delegated Clicks for Table & Preview Actions (Publish/Unpublish, Delete)
-    document.addEventListener('click', function (e) {
+    document.addEventListener('click', async function (e) {
       // Toggle publish button in tables or preview view
       const publishBtn = e.target.closest('[data-action="toggle-publish"], #preview-toggle-publish-btn');
       if (publishBtn) {
         e.preventDefault();
         const articleId = publishBtn.getAttribute('data-id');
-        const updated = StorageService.togglePublish(articleId);
-        if (updated) {
-          const statusText = updated.status === 'published' ? 'published' : 'reverted to draft';
-          UI.showToast(`Article "${updated.title}" ${statusText}!`);
-          if (state.currentRoute === 'preview') {
-            loadPreviewView(updated.id);
-            UI.updateSidebarBadges(StorageService.getStatistics());
-          } else {
-            handleRoute(); // re-render current view
+        try {
+          const updated = await StorageService.togglePublish(articleId);
+          if (updated) {
+            const statusText = updated.status === 'published' ? 'published' : 'reverted to draft';
+            UI.showToast(`Article "${updated.title}" ${statusText}!`);
+            if (state.currentRoute === 'preview') {
+              loadPreviewView(updated.id);
+              UI.updateSidebarBadges(StorageService.getStatistics());
+            } else {
+              handleRoute(); // re-render current view
+            }
           }
+        } catch (err) {
+          UI.showToast(err.message || 'Failed to toggle publication status', 'error');
         }
         return;
       }
@@ -606,10 +623,14 @@
           message: `Are you sure you want to delete "${article.title}"? This action cannot be undone.`,
           confirmText: 'Yes, Delete',
           confirmClass: 'btn-danger',
-          onConfirm: () => {
-            StorageService.remove(articleId);
-            UI.showToast(`Article "${article.title}" deleted.`);
-            handleRoute();
+          onConfirm: async () => {
+            try {
+              await StorageService.remove(articleId);
+              UI.showToast(`Article "${article.title}" deleted.`);
+              handleRoute();
+            } catch (err) {
+              UI.showToast(err.message || 'Failed to delete article', 'error');
+            }
           }
         });
         return;
@@ -631,7 +652,10 @@
     // 5. Editor Live Content Input
     const contentInput = document.getElementById('input-article-content');
     if (contentInput) {
-      contentInput.addEventListener('input', updateEditorMetricsAndPreview);
+      contentInput.addEventListener('input', () => {
+        updateEditorMetricsAndPreview();
+        StorageService.saveDraftBuffer(state.editingArticleId || 'new', contentInput.value);
+      });
     }
 
     // 6. Editor Toolbar Actions
@@ -836,39 +860,47 @@
     const btnModalOpenEditor = document.getElementById('btn-modal-open-editor');
 
     if (btnModalSaveDraft) {
-      btnModalSaveDraft.addEventListener('click', () => {
+      btnModalSaveDraft.addEventListener('click', async () => {
         if (!state.uploadedArticleData) {
           UI.showToast('Please select or drop a Markdown file first.', 'warning');
           return;
         }
         state.uploadedArticleData.status = 'draft';
-        const created = StorageService.create(state.uploadedArticleData);
-        closeUploadModal();
-        UI.showToast(`Imported "${created.title}" as Draft!`, 'success');
-        const targetHash = `#/preview?id=${created.id}`;
-        if (window.location.hash === targetHash) {
-          handleRoute();
-        } else {
-          window.location.hash = targetHash;
+        try {
+          const created = await StorageService.create(state.uploadedArticleData);
+          closeUploadModal();
+          UI.showToast(`Imported "${created.title}" as Draft!`, 'success');
+          const targetHash = `#/preview?id=${created.id || created._id}`;
+          if (window.location.hash === targetHash) {
+            handleRoute();
+          } else {
+            window.location.hash = targetHash;
+          }
+        } catch (err) {
+          UI.showToast(err.message || 'Error saving imported article', 'error');
         }
       });
     }
 
     if (btnModalPublishNow) {
-      btnModalPublishNow.addEventListener('click', () => {
+      btnModalPublishNow.addEventListener('click', async () => {
         if (!state.uploadedArticleData) {
           UI.showToast('Please select or drop a Markdown file first.', 'warning');
           return;
         }
         state.uploadedArticleData.status = 'published';
-        const created = StorageService.create(state.uploadedArticleData);
-        closeUploadModal();
-        UI.showToast(`Imported and published "${created.title}"!`, 'success');
-        const targetHash = `#/preview?id=${created.id}`;
-        if (window.location.hash === targetHash) {
-          handleRoute();
-        } else {
-          window.location.hash = targetHash;
+        try {
+          const created = await StorageService.create(state.uploadedArticleData);
+          closeUploadModal();
+          UI.showToast(`Imported and published "${created.title}"!`, 'success');
+          const targetHash = `#/preview?id=${created.id || created._id}`;
+          if (window.location.hash === targetHash) {
+            handleRoute();
+          } else {
+            window.location.hash = targetHash;
+          }
+        } catch (err) {
+          UI.showToast(err.message || 'Error publishing imported article', 'error');
         }
       });
     }
@@ -901,13 +933,17 @@
       btnResetDemo.addEventListener('click', () => {
         UI.showConfirmModal({
           title: 'Reset to Sample Data?',
-          message: 'This will restore the original demo articles and clear any manual changes.',
+          message: 'This will restore sample demo articles in MongoDB and refresh the database.',
           confirmText: 'Reset Data',
           confirmClass: 'btn-primary',
-          onConfirm: () => {
-            StorageService.resetToDefaults();
-            UI.showToast('Sample data restored successfully!');
-            handleRoute();
+          onConfirm: async () => {
+            try {
+              await StorageService.resetToDefaults();
+              UI.showToast('Sample data restored successfully in MongoDB!');
+              handleRoute();
+            } catch (err) {
+              UI.showToast(err.message || 'Error resetting sample data', 'error');
+            }
           }
         });
       });
@@ -933,9 +969,22 @@
   /**
    * Bootstrapping CloudPublish
    */
-  function initApp() {
+  async function initApp() {
     initEventListeners();
+    try {
+      await StorageService.sync();
+    } catch (e) {
+      console.warn('Initial sync warning:', e);
+    }
     handleRoute();
+
+    // Listen to background sync updates
+    StorageService.onSync(() => {
+      UI.updateSidebarBadges(StorageService.getStatistics());
+      if (['dashboard', 'all-content', 'drafts', 'published'].includes(state.currentRoute)) {
+        handleRoute();
+      }
+    });
   }
 
   // Start app when DOM is ready
